@@ -9,6 +9,8 @@ SOCKET_LIST = {} # username:socket
 RECV_BUFR = 4096
 PORT = 3001
 LINE = "\n##################################################################\n"
+STAR = "[*] "
+DEBUG = True
 
 def chat_server():
     """
@@ -49,7 +51,7 @@ def recv_msg(server_socket, sock):
         data = sock.recv(RECV_BUFR).decode()
         username = get_username(sock)
         if data:
-                msg = username+": "+data
+                msg = username+": "+data.rstrip()
                 print(msg)
                 send_msg_to_all(server_socket, sock, username, msg)
 
@@ -57,8 +59,14 @@ def recv_msg(server_socket, sock):
         else:
             remove_user(username, sock)
 
-    except:
-        msg = username+" is offline."
+    # except(UnboundLocalError):
+    #     print("ERROR: Attempted to send to user that doesnt exist.")
+
+    # except(ConnectionResetError):
+    #     print("ERROR: Unexpectedly disconnected.")
+
+    except(NameError):
+        msg = STAR+username+" is offline."
         print(msg)
         send_msg_to_all(server_socket, sock, username, msg)
 
@@ -68,16 +76,17 @@ def send_msg_to_all(server_socket, senders_socket,senders_username, message):
     """
     Sends a message to all other connected clients.
     """
+    debug("Entering send_msg_to_all")
     for username, socket in SOCKET_LIST.items():
         if socket != server_socket and socket != senders_socket:
-            try:
+            # try:
                 # attempt to send message to client
                 socket.send(bytes(message,'UTF-8'))
-            except:
-                # close socket if message fails
-                socket.close()
-                # remove client from the sockets list
-                remove_user(username, socket)
+            # except:
+            #     # close socket if message fails
+            #     socket.close()
+            #     # remove client from the sockets list
+            #     remove_user(username, socket)
 
 
 def add_user(server_socket):
@@ -88,15 +97,16 @@ def add_user(server_socket):
     new_sock, new_addr = server_socket.accept()
     # receive newly connected client's username
     username = new_sock.recv(RECV_BUFR).decode()
+    new_sock.settimeout(30)
     if username not in SOCKET_LIST:
         SOCKET_LIST[username] = new_sock
         new_sock.send(bytes("OK",'UTF-8'))
-        mesg = username+ " entered the chat."
+        mesg = STAR+username+ " entered the chat."
         print(mesg)
         send_msg_to_all(server_socket,new_sock,username,mesg)
     else:
         # send message informing that the username is not unique
-        print(username+"(%s) failed to connect." % new_addr)
+        print(username+" "+str(new_addr)+" failed to connect.")
         new_sock.send(bytes("NOT_UNIQUE",'UTF-8'))
         new_sock.close()
 
@@ -144,6 +154,10 @@ def get_all_users():
     for username, socket in SOCKET_LIST.items():
         all_users.append(username)
     return all_users
+
+def debug(msg):
+    if DEBUG:
+        print(msg)
 
 
 

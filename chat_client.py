@@ -3,13 +3,13 @@ import os
 import sys
 import select
 
-SERVER_IP = '10.12.26.110'
+SERVER_IP = '192.168.12.1'
 SERVER_PORT = 3001
 RECV_BUFR = 4096
-USERS_CONNECT = []
+USERS_CONNECTED = []
 SOCKET = []
 USERNAME = []
-DEBUG = False
+DEBUG = True
 LINE = "\n##################################################################\n"
 
 def chat_client():
@@ -17,12 +17,15 @@ def chat_client():
     Runs a chat client that connects to a given server. The user can receive and
     send messages to the server.
     """
+    # SERVER_IP = input("SERVER IP >")
+    # SERVER_PORT = input("SERVER PORT >")
     # ask for USERNAME
     USERNAME.append(input("USERNAME > "))
 
     # attempt to connect
     if connect_to_server(USERNAME[0]) == 1:
         print(LINE+" Connected to "+SERVER_IP+LINE)
+        # TODO: receive the list of users who are connected
         prompt()
 
         while 1:
@@ -74,11 +77,21 @@ def recv_msg(socket):
     debug("Entering recv_msg")
     data = socket.recv(RECV_BUFR)
     if not data :
-        print("Disconnected from the chat server")
+        print("Disconnected from the chat server.")
         sys.exit()
     else:
         # print data
-        sys.stdout.write("\n"+data.decode()+"\n")
+        data = data.decode()
+        sys.stdout.write("\n"+data+"\n")
+        # a new user has entered
+        if "[*]" in data and "entered" in data:
+            USERS_CONNECTED.append(data.split(" ")[1])
+            debug("user added.")
+        # a user has left
+        if "[*]" in data and "offline" in data or \
+            "[*]" in data and "exited" in data:
+            USERS_CONNECTED.remove(data.split(" ")[1])
+            debug("user removed.")
         prompt()
 
 
@@ -97,6 +110,7 @@ def connect_to_server(username):
             SOCKET.append(clientsocket)
             return 1
         else:
+            print("Username already exist.")
             return 0
     # chat server offline
     except(ConnectionRefusedError):

@@ -1,5 +1,6 @@
 # file: chat_server.py
 
+from datetime import datetime
 import sys
 import socket
 import select
@@ -55,7 +56,7 @@ def prompt():
     """
     Prints out the chat prompt.
     """
-    sys.stdout.write("server > ")
+    sys.stdout.write("["+datetime.now().strftime('%H:%M:%S')+"] "+"server > ")
     sys.stdout.flush()
 
 
@@ -69,7 +70,7 @@ def recv_msg(server_socket, sock):
         username = get_username(sock)
         if data:
             msg = username+": "+data.rstrip()
-            print("\n"+msg)
+            print("\n"+"["+datetime.now().strftime('%H:%M:%S')+"] "+msg)
             send_msg_to_all(server_socket, sock, username, msg)
 
         # remove broken socket
@@ -99,6 +100,7 @@ def send_msg_to_all(server_socket, senders_socket,senders_username, message):
         if socket != server_socket and socket != senders_socket:
             try:
                 # attempt to send message to client
+                message = "["+datetime.now().strftime('%H:%M:%S')+"] "+message
                 socket.send(bytes(message,'UTF-8'))
             except:
                 # close socket if message fails

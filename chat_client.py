@@ -1,3 +1,5 @@
+import tkinter
+from datetime import datetime
 import socket
 import os
 import sys
@@ -58,7 +60,9 @@ def prompt():
     """
     Prints out the chat prompt.
     """
-    sys.stdout.write(USERNAME[0]+" > ")
+    sys.stdout.write("["+datetime.now().strftime('%H:%M:%S')+"] "+ \
+    USERNAME[0]+" > ")
+
     sys.stdout.flush()
 
 

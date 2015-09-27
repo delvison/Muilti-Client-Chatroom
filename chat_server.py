@@ -10,7 +10,7 @@ RECV_BUFR = 4096
 PORT = 3001
 LINE = "\n##################################################################\n"
 STAR = "[*] "
-DEBUG = True
+DEBUG = False
 
 def chat_server():
     """
@@ -26,20 +26,37 @@ def chat_server():
     SOCKET_LIST['server'] = server_socket
 
     print(LINE+"Chat running " +str(HOST)+":"+ str(PORT)+LINE)
+    prompt()
 
     while 1:
-        all_sockets = get_all_sockets()
-        ready_to_read,ready_to_write,in_error = \
-        select.select(all_sockets,[],[],0)
+        try:
+            all_sockets = get_all_sockets()
+            ready_to_read,ready_to_write,in_error = \
+            select.select(all_sockets,[],[],0)
 
-        for sock in ready_to_read:
-            # a new connection request is received
-            if sock == server_socket:
-                add_user(server_socket)
+            for sock in ready_to_read:
+                # a new connection request is received
+                if sock == server_socket:
+                    add_user(server_socket)
 
-            # a message from a client is received
-            else:
-                recv_msg(server_socket,sock)
+                # sending a message
+                elif sock == sys.stdin:
+                    send_msg_to_all(server_socket,server_socket,"server",
+                    "server: "+sys.stdin.readline().rstrip())
+
+                # a message from a client is received
+                else:
+                    recv_msg(server_socket,sock)
+        except(KeyboardInterrupt):
+            print("Program terminated.")
+            sys.exit()
+
+def prompt():
+    """
+    Prints out the chat prompt.
+    """
+    sys.stdout.write("server > ")
+    sys.stdout.flush()
 
 
 def recv_msg(server_socket, sock):
@@ -51,22 +68,23 @@ def recv_msg(server_socket, sock):
         data = sock.recv(RECV_BUFR).decode()
         username = get_username(sock)
         if data:
-                msg = username+": "+data.rstrip()
-                print(msg)
-                send_msg_to_all(server_socket, sock, username, msg)
+            msg = username+": "+data.rstrip()
+            print("\n"+msg)
+            send_msg_to_all(server_socket, sock, username, msg)
 
         # remove broken socket
         else:
             remove_user(username, sock)
 
-    # except(UnboundLocalError):
-    #     print("ERROR: Attempted to send to user that doesnt exist.")
 
-    # except(ConnectionResetError):
-    #     print("ERROR: Unexpectedly disconnected.")
+    except(UnboundLocalError):
+        print("ERROR: Attempted to send to user that doesnt exist.")
+
+    except(ConnectionResetError):
+        print("ERROR: Unexpectedly disconnected.")
 
     except(NameError):
-        msg = STAR+username+" is offline."
+        msg = "\n"+STAR+username+" is offline."
         print(msg)
         send_msg_to_all(server_socket, sock, username, msg)
 
@@ -79,14 +97,15 @@ def send_msg_to_all(server_socket, senders_socket,senders_username, message):
     debug("Entering send_msg_to_all")
     for username, socket in SOCKET_LIST.items():
         if socket != server_socket and socket != senders_socket:
-            # try:
+            try:
                 # attempt to send message to client
                 socket.send(bytes(message,'UTF-8'))
-            # except:
-            #     # close socket if message fails
-            #     socket.close()
-            #     # remove client from the sockets list
-            #     remove_user(username, socket)
+            except:
+                # close socket if message fails
+                socket.close()
+                # remove client from the sockets list
+                remove_user(username, socket)
+    prompt()
 
 
 def add_user(server_socket):
@@ -102,14 +121,15 @@ def add_user(server_socket):
         SOCKET_LIST[username] = new_sock
         new_sock.send(bytes("OK",'UTF-8'))
         mesg = STAR+username+ " entered the chat."
-        print(mesg)
+        new_sock.send(bytes(mesg,'UTF-8'))
+        print("\n"+mesg)
         send_msg_to_all(server_socket,new_sock,username,mesg)
     else:
         # send message informing that the username is not unique
         print(username+" "+str(new_addr)+" failed to connect.")
         new_sock.send(bytes("NOT_UNIQUE",'UTF-8'))
         new_sock.close()
-
+        prompt()
 
 def remove_user(username, socket):
     """
@@ -142,6 +162,7 @@ def get_all_sockets():
     Returns list of all sockets connected.
     """
     all_sockets = []
+    all_sockets.append(sys.stdin)
     for username, socket in SOCKET_LIST.items():
         all_sockets.append(socket)
     return all_sockets

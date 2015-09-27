@@ -9,6 +9,7 @@ RECV_BUFR = 4096
 USERS_CONNECT = []
 SOCKET = []
 USERNAME = []
+DEBUG = False
 LINE = "\n##################################################################\n"
 
 def chat_client():
@@ -40,6 +41,11 @@ def chat_client():
                     # user entered a message
                     else:
                         send_msg(SOCKET[0],sys.stdin.readline())
+
+            except(KeyboardInterrupt):
+                print("Program terminated.")
+                sys.exit()
+
             except:
                 print("ERROR: Lost connection.")
                 sys.exit()
@@ -65,13 +71,14 @@ def recv_msg(socket):
     """
     Allows the program to recieve a message on the given socket.
     """
-    data = socket.recv(bytes(RECV_BUFR,'UTF-8'))
+    debug("Entering recv_msg")
+    data = socket.recv(RECV_BUFR)
     if not data :
         print("Disconnected from the chat server")
         sys.exit()
     else:
         # print data
-        sys.stdout.write(data)
+        sys.stdout.write("\n"+data.decode()+"\n")
         prompt()
 
 
@@ -96,6 +103,9 @@ def connect_to_server(username):
         print("Server offline")
         return -1
 
+def debug(msg):
+    if DEBUG:
+        print("DEBUG: "+msg)
 
 if __name__ == "__main__":
     chat_client()

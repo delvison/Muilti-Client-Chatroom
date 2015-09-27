@@ -27,7 +27,13 @@ def chat_client():
     # attempt to connect
     if connect_to_server(USERNAME[0]) == 1:
         print(LINE+" Connected to "+SERVER_IP+LINE)
-        # TODO: receive the list of users who are connected
+        # receive the list of users who are connected
+        data = SOCKET[0].recv(RECV_BUFR)
+        users = data.decode().split('&')
+        for user in users:
+            USERS_CONNECTED.append(user)
+
+        print_all_users()
         prompt()
 
         while 1:
@@ -78,24 +84,26 @@ def recv_msg(socket):
     """
     Allows the program to recieve a message on the given socket.
     """
-    debug("Entering recv_msg")
     data = socket.recv(RECV_BUFR)
     if not data :
         print("Disconnected from the chat server.")
         sys.exit()
     else:
-        # print data
+        # print newly received message
         data = data.decode()
         sys.stdout.write("\n"+data+"\n")
+
         # a new user has entered
         if "[*]" in data and "entered" in data:
-            USERS_CONNECTED.append(data.split(" ")[1])
-            debug("user added.")
+            debug(data.split(" ")[-2]+" added.")
+            USERS_CONNECTED.append(data.split(" ")[-2])
+            print_all_users()
+
         # a user has left
-        if "[*]" in data and "offline" in data or \
-            "[*]" in data and "exited" in data:
-            USERS_CONNECTED.remove(data.split(" ")[1])
-            debug("user removed.")
+        if "[*]" in data and "exited" in data:
+            debug(data.split(" ")[-2]+" removed.")
+            USERS_CONNECTED.remove(data.split(" ")[-2])
+            print_all_users()
         prompt()
 
 
@@ -120,6 +128,10 @@ def connect_to_server(username):
     except(ConnectionRefusedError):
         print("Server offline")
         return -1
+
+def print_all_users():
+    for user in USERS_CONNECTED:
+        print(user)
 
 def debug(msg):
     if DEBUG:

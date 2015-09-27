@@ -69,7 +69,7 @@ def recv_msg(server_socket, sock):
         data = sock.recv(RECV_BUFR).decode()
         username = get_username(sock)
         if data:
-            msg = username+": "+data.rstrip()
+            msg = username+" > "+data.rstrip()
             print("\n"+"["+datetime.now().strftime('%H:%M:%S')+"] "+msg)
             send_msg_to_all(server_socket, sock, username, msg)
 
@@ -85,8 +85,8 @@ def recv_msg(server_socket, sock):
         print("ERROR: Unexpectedly disconnected.")
 
     except(NameError):
-        msg = "\n"+STAR+username+" is offline."
-        print(msg)
+        msg = STAR+username+" exited."
+        print("\n"+msg)
         send_msg_to_all(server_socket, sock, username, msg)
 
 
@@ -121,10 +121,17 @@ def add_user(server_socket):
     new_sock.settimeout(30)
     if username not in SOCKET_LIST:
         SOCKET_LIST[username] = new_sock
+        # send ACK
         new_sock.send(bytes("OK",'UTF-8'))
-        mesg = STAR+username+ " entered the chat."
-        new_sock.send(bytes(mesg,'UTF-8'))
+        # inform new user of current users in the chat
+        all_users = ''
+        for user,socket in SOCKET_LIST.items():
+            all_users += "&"+user
+        new_sock.send(bytes(all_users,'UTF-8'))
+        # inform all users that a new user has entered
+        mesg = STAR+username+ " entered."
         print("\n"+mesg)
+        print_all_users()
         send_msg_to_all(server_socket,new_sock,username,mesg)
     else:
         # send message informing that the username is not unique
@@ -146,7 +153,8 @@ def remove_user(username, socket):
     except KeyError:
         pass
     # inform the chat room
-    msg = username + " removed."
+    msg = username + " exited."
+    print_all_users()
     send_msg_to_all(NIL, NIL, NIL, msg)
 
 def get_username(socket):
@@ -169,14 +177,11 @@ def get_all_sockets():
         all_sockets.append(socket)
     return all_sockets
 
-def get_all_users():
-    """
-    Returns list of all users connected.
-    """
-    all_users= []
-    for username, socket in SOCKET_LIST.items():
-        all_users.append(username)
-    return all_users
+def print_all_users():
+    all_users = "USERS: ["
+    for user, socket in SOCKET_LIST.items():
+        all_users+= user+","
+    print(all_users+"]")
 
 def debug(msg):
     if DEBUG:

@@ -1,20 +1,30 @@
-import tkinter
+from tkinter import *
 from datetime import datetime
+from chat_gui import *
 import socket
 import os
 import sys
 import select
 
-SERVER_IP = '192.168.12.1'
-SERVER_PORT = 3001
-RECV_BUFR = 4096
-USERS_CONNECTED = []
-SOCKET = []
-USERNAME = []
-DEBUG = True
+# server config
+SERVER_IP = '10.12.9.244' # IP of server hosting the chatroom
+SERVER_PORT = 3001 # port to connect to
+RECV_BUFR = 4096 # receive buffer size
+USERS_CONNECTED = [] # users who exist in the chatroom
+SOCKET = [] # socket to the server
+USERNAME = [] # users username
+DEBUG = True # debug flag
+
+# GUI
+gui_root = '' # parent gui element
+gui_userlist = ''  # list of users in the chatroom
+gui_msgfield = ''  # input field where a message is typed
+gui_chatpane = ''  # pane where chat messages are displayed
+
+
 LINE = "\n##################################################################\n"
 
-def chat_client():
+def cli_chat_client():
     """
     Runs a chat client that connects to a given server. The user can receive and
     send messages to the server.
@@ -33,7 +43,7 @@ def chat_client():
         for user in users:
             USERS_CONNECTED.append(user)
 
-        print_all_users()
+        # print_all_users()
         prompt()
 
         while 1:
@@ -96,14 +106,12 @@ def recv_msg(socket):
         # a new user has entered
         if "[*]" in data and "entered" in data:
             debug(data.split(" ")[-2]+" added.")
-            USERS_CONNECTED.append(data.split(" ")[-2])
-            print_all_users()
+            add_user(data.split(" ")[-2])
 
         # a user has left
         if "[*]" in data and "exited" in data:
             debug(data.split(" ")[-2]+" removed.")
-            USERS_CONNECTED.remove(data.split(" ")[-2])
-            print_all_users()
+            remove_user(data.split(" ")[-2])
         prompt()
 
 
@@ -137,5 +145,30 @@ def debug(msg):
     if DEBUG:
         print("DEBUG: "+msg)
 
+def add_user(username):
+    """
+    Adds a user to the chat.
+    """
+    # TODO: Write me
+    USERS_CONNECTED.append(username)
+    # gui_userlist.insert(0,username)
+
+def remove_user(username):
+    """
+    removes a user from the chat.
+    """
+    # TODO: Write me
+    USERS_CONNECTED.remove(username)
+
+def connect_to_server_gui(server_ip, port):
+    print(server_ip)
+    print(port)
+
 if __name__ == "__main__":
-    chat_client()
+    # initialize the GUI
+    root = Tk()
+    gui = chat_gui(master=root)
+    gui.mainloop()
+
+    # initalize the chat client loop
+    cli_chat_client()

@@ -6,12 +6,12 @@ import socket
 import select
 
 HOST = socket.gethostbyname(socket.gethostname())
-SOCKET_LIST = {} # username:socket
-RECV_BUFR = 4096
-PORT = 3001
+SOCKET_LIST = {} # dictionary of sockets and users = {username:socket,...}
+RECV_BUFR = 4096 # buffer size for messages
+PORT = 3001 # port of server being connected to
 LINE = "\n##################################################################\n"
-STAR = "[*] "
-DEBUG = False
+STAR = "[*] " # event marker -- tells when a person enters or leaves room
+DEBUG = False # debugger flag
 
 def chat_server():
     """
@@ -178,10 +178,10 @@ def get_all_sockets():
     return all_sockets
 
 def print_all_users():
-    all_users = "USERS: ["
+    all_users = "\nUSERS: ["
     for user, socket in SOCKET_LIST.items():
         all_users+= user+","
-    print(all_users+"]")
+    print(all_users[:-1]+"]")
 
 def debug(msg):
     if DEBUG:

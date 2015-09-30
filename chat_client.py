@@ -1,121 +1,18 @@
 from tkinter import *
-from datetime import datetime
 from chat_gui import *
+from datetime import datetime
 import socket
 import os
 import sys
 import select
 
-# server config
-SERVER_IP = '10.12.9.244' # IP of server hosting the chatroom
-SERVER_PORT = 3001 # port to connect to
 RECV_BUFR = 4096 # receive buffer size
 USERS_CONNECTED = [] # users who exist in the chatroom
 SOCKET = [] # socket to the server
 USERNAME = [] # users username
 DEBUG = True # debug flag
 
-# GUI
-gui_root = '' # parent gui element
-gui_userlist = ''  # list of users in the chatroom
-gui_msgfield = ''  # input field where a message is typed
-gui_chatpane = ''  # pane where chat messages are displayed
-
-
-LINE = "\n##################################################################\n"
-
-def cli_chat_client():
-    """
-    Runs a chat client that connects to a given server. The user can receive and
-    send messages to the server.
-    """
-    # SERVER_IP = input("SERVER IP >")
-    # SERVER_PORT = input("SERVER PORT >")
-    # ask for USERNAME
-    USERNAME.append(input("USERNAME > "))
-
-    # attempt to connect
-    if connect_to_server(USERNAME[0]) == 1:
-        print(LINE+" Connected to "+SERVER_IP+LINE)
-        # receive the list of users who are connected
-        data = SOCKET[0].recv(RECV_BUFR)
-        users = data.decode().split('&')
-        for user in users:
-            USERS_CONNECTED.append(user)
-
-        # print_all_users()
-        prompt()
-
-        while 1:
-            try:
-                socket_list = [sys.stdin, SOCKET[0]]
-
-                # Get the list sockets which are readable
-                read_sockets, write_sockets, error_sockets = \
-                select.select(socket_list , [], [],)
-
-                for sock in read_sockets:
-                    # incoming message from remote server
-                    if sock == SOCKET[0]:
-                        recv_msg(sock)
-
-                    # user entered a message
-                    else:
-                        send_msg(SOCKET[0],sys.stdin.readline())
-
-            except(KeyboardInterrupt):
-                print("Program terminated.")
-                sys.exit()
-
-            except:
-                print("ERROR: Lost connection.")
-                sys.exit()
-
-
-def prompt():
-    """
-    Prints out the chat prompt.
-    """
-    sys.stdout.write("["+datetime.now().strftime('%H:%M:%S')+"] "+ \
-    USERNAME[0]+" > ")
-
-    sys.stdout.flush()
-
-
-def send_msg(server_socket,msg):
-    """
-    Allows a user to send a message to the chat server using the given socket.
-    """
-    server_socket.send(bytes(msg,'UTF-8'))
-    prompt()
-
-
-def recv_msg(socket):
-    """
-    Allows the program to recieve a message on the given socket.
-    """
-    data = socket.recv(RECV_BUFR)
-    if not data :
-        print("Disconnected from the chat server.")
-        sys.exit()
-    else:
-        # print newly received message
-        data = data.decode()
-        sys.stdout.write("\n"+data+"\n")
-
-        # a new user has entered
-        if "[*]" in data and "entered" in data:
-            debug(data.split(" ")[-2]+" added.")
-            add_user(data.split(" ")[-2])
-
-        # a user has left
-        if "[*]" in data and "exited" in data:
-            debug(data.split(" ")[-2]+" removed.")
-            remove_user(data.split(" ")[-2])
-        prompt()
-
-
-def connect_to_server(username):
+def connect_to_server(gui,SERVER_IP,SERVER_PORT,username):
     """
     Attempts to connect to the server using the given username.
     """
@@ -128,47 +25,102 @@ def connect_to_server(username):
 
         if ack != "NOT_UNIQUE":
             SOCKET.append(clientsocket)
-            return 1
+            return [1,clientsocket]
         else:
             print("Username already exist.")
-            return 0
+            return [0,clientsocket]
     # chat server offline
     except(ConnectionRefusedError):
         print("Server offline")
+        gui.chat.insert(END,"Server offline.\n")
         return -1
 
-def print_all_users():
-    for user in USERS_CONNECTED:
-        print(user)
+def run_client(gui):
 
-def debug(msg):
-    if DEBUG:
-        print("DEBUG: "+msg)
+    try:
+        # socket_list = [sys.stdin, SOCKET[0]]
+        socket_list = [gui.SOCKET]
 
-def add_user(username):
-    """
-    Adds a user to the chat.
-    """
-    # TODO: Write me
-    USERS_CONNECTED.append(username)
-    # gui_userlist.insert(0,username)
+        # Get the list sockets which are readable
+        # read_sockets, write_sockets, error_sockets = \
+        # select.select(socket_list , [], [],)
 
-def remove_user(username):
-    """
-    removes a user from the chat.
-    """
-    # TODO: Write me
-    USERS_CONNECTED.remove(username)
+        # for sock in read_sockets:
+        #     # incoming message from remote server
+        #     if sock == gui.SOCKET:
+        #         recv_msg(gui,sock)
+        #         print("recieve")
+        #
+        #     # user entered a message
+        #     # else:
+        #     #     send_msg(gui.SOCKET,sys.stdin.readline())
 
-def connect_to_server_gui(server_ip, port):
-    print(server_ip)
-    print(port)
+        # gui.after(1000,run_client(gui))
+
+    except(KeyboardInterrupt):
+        print("Program terminated.")
+        sys.exit()
+
+    except:
+        gui.chat.insert(END,"\nDisconnected.\n")
+        sys.exit()
+
+def recv_msg(gui,socket):
+    """
+    Allows the program to recieve a message on the given socket.
+    """
+    data = socket.recv(RECV_BUFR)
+    if not data :
+        sys.exit()
+    else:
+        # print newly received message
+        data = data.decode()
+        gui.chat.insert(END,"\n"+data)
+
+        # a new user has entered
+        if "[*]" in data and "entered" in data and len(data.strip()) >= 1:
+            gui.add_user(data.split(" ")[-2])
+
+        # a user has left
+        if "[*]" in data and "exited" in data:
+            gui.remove_user(data.split(" ")[-2])
+
+def socket_handler(gui,socket):
+    try:
+        while 1:
+            # socket_list = [sys.stdin, SOCKET[0]]
+            socket_list = [socket]
+
+            # Get the list sockets which are readable
+            read_sockets, write_sockets, error_sockets = \
+            select.select(socket_list , [], [],)
+
+            for sock in read_sockets:
+                # incoming message from remote server
+                if sock == socket:
+                    recv_msg(gui,sock)
+
+                # user entered a message
+                # else:
+                #     send_msg(gui.SOCKET,sys.stdin.readline())
+
+    except(KeyboardInterrupt):
+        print("Program terminated.")
+        sys.exit()
+
+    except:
+        gui.chat.insert(END,"\nDisconnected.\n")
+
+def send_msg(server_socket,msg):
+    """
+    Allows a user to send a message to the chat server using the given socket.
+    """
+    server_socket.send(bytes(msg,'UTF-8'))
+
 
 if __name__ == "__main__":
     # initialize the GUI
     root = Tk()
-    gui = chat_gui(master=root)
-    gui.mainloop()
+    gui_root = chat_gui(master=root)
+    gui_root.mainloop()
 
-    # initalize the chat client loop
-    cli_chat_client()

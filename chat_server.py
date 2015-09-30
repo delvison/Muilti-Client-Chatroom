@@ -12,6 +12,7 @@ PORT = 3001 # port of server being connected to
 LINE = "\n##################################################################\n"
 STAR = "[*] " # event marker -- tells when a person enters or leaves room
 DEBUG = False # debugger flag
+COMMANDS = ["HELP","KICK","LIST_USERS","EXIT"]
 
 def chat_server():
     """
@@ -42,8 +43,14 @@ def chat_server():
 
                 # sending a message
                 elif sock == sys.stdin:
-                    send_msg_to_all(server_socket,server_socket,"server",
-                    "server: "+sys.stdin.readline().rstrip())
+                    m = sys.stdin.readline().rstrip()
+                    # check if the user is inputting a command
+                    if m.split(" ")[0] in COMMANDS \
+                    and len(m.split(" ")) <= 2:
+                        process_command(m)
+                    else:
+                        send_msg_to_all(server_socket,server_socket,"server",
+                        "server: "+m)
 
                 # a message from a client is received
                 else:
@@ -75,7 +82,7 @@ def recv_msg(server_socket, sock):
 
         # remove broken socket
         else:
-            remove_user(username, sock)
+            remove_user(username)
 
 
     except(UnboundLocalError):
@@ -106,7 +113,7 @@ def send_msg_to_all(server_socket, senders_socket,senders_username, message):
                 # close socket if message fails
                 socket.close()
                 # remove client from the sockets list
-                remove_user(username, socket)
+                remove_user(username)
     prompt()
 
 
@@ -140,22 +147,23 @@ def add_user(server_socket):
         new_sock.close()
         prompt()
 
-def remove_user(username, socket):
+def remove_user(username):
     """
     Takes in an open socket, closes the socket which essentially removes a
     user, and informs the other users that the user has been removed.
     """
-    # close socket
-    socket.close()
     # remove socket from sockets list
     try:
+        # close socket
+        SOCKET_LIST[username].close()
         del SOCKET_LIST[username]
+        # inform the chat room
+        msg = username + " exited."
+        print_all_users()
+        send_msg_to_all(SOCKET_LIST['server'],SOCKET_LIST['server'] ,\
+        'server', msg)
     except KeyError:
         pass
-    # inform the chat room
-    msg = username + " exited."
-    print_all_users()
-    send_msg_to_all(NIL, NIL, NIL, msg)
 
 def get_username(socket):
     """
@@ -182,6 +190,27 @@ def print_all_users():
     for user, socket in SOCKET_LIST.items():
         all_users+= user+","
     print(all_users[:-1]+"]")
+
+def process_command(cmd):
+    try:
+        # HELP
+        if cmd.split(" ")[0] == COMMANDS[0]:
+            print("Commands: ")
+            for c in COMMANDS:
+                print("   "+c)
+            prompt()
+        # KICK [USER]
+        if cmd.split(" ")[0] == COMMANDS[1]:
+            remove_user(cmd.split(" ")[1])
+        # LIST_USERS
+        if cmd.split(" ")[0] == COMMANDS[2]:
+            print_all_users()
+            prompt()
+        # EXIT
+        if cmd.split(" ")[0] == COMMANDS[3]:
+            sys.exit()
+    except IndexError:
+        pass
 
 def debug(msg):
     if DEBUG:

@@ -124,9 +124,9 @@ def add_user(server_socket):
     # Accept new connections into chat
     new_sock, new_addr = server_socket.accept()
     # receive newly connected client's username
-    username = new_sock.recv(RECV_BUFR).decode()
+    username = new_sock.recv(RECV_BUFR).decode().rstrip()
     new_sock.settimeout(30)
-    if username not in SOCKET_LIST:
+    if username not in SOCKET_LIST and username.strip() != "":
         SOCKET_LIST[username] = new_sock
         # send ACK
         new_sock.send(bytes("OK",'UTF-8'))
@@ -158,7 +158,8 @@ def remove_user(username):
         SOCKET_LIST[username].close()
         del SOCKET_LIST[username]
         # inform the chat room
-        msg = username + " exited."
+        msg = STAR+username + " exited."
+        print(msg)
         print_all_users()
         send_msg_to_all(SOCKET_LIST['server'],SOCKET_LIST['server'] ,\
         'server', msg)

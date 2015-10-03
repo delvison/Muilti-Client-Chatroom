@@ -6,12 +6,11 @@ from _thread import start_new_thread
 class chat_gui(Frame):
 
     def __init__(self, master=None):
-
         self.USERS_CONNECTED = [] # users who exist in the chatroom
         self.IS_CONNECTED = False # indicates whether a user is connected
 
         Frame.__init__(self, master)
-        self.grid()
+        self.grid(sticky = W+E+N+S)
         self.master.title("Chat")
 
         # set up gui frames
@@ -22,15 +21,18 @@ class chat_gui(Frame):
         self.Frame2.grid(row = 3, column = 0, rowspan = 3, columnspan = 1, \
         sticky = W+E+N+S)
         self.Frame3 = Frame(master)
-        self.Frame3.grid(row = 0, column = 1, rowspan = 5, columnspan = 4, \
+        self.Frame3.grid(row = 0, column = 1, rowspan = 5, columnspan = 3, \
         sticky = W+E+N+S)
         self.Frame4 = Frame(master)
-        self.Frame4.grid(row = 5, column = 1, rowspan = 1, columnspan = 4, \
+        self.Frame4.grid(row = 5, column = 1, rowspan = 1, columnspan = 3, \
         sticky = W+E+N+S)
 
         self.initialize()
 
     def initialize(self):
+        """
+        Initializes to GUI.
+        """
         # set up chat list
         self.gui_userlist = Listbox(self.Frame1)
         self.gui_userlist.pack(side="left",expand=1,fill="both")
@@ -52,9 +54,9 @@ class chat_gui(Frame):
         self.s_label.grid(row=0,column=0)
         self.p_label.grid(row=1,column=0)
         self.u_label.grid(row=2,column=0)
-        self.server.grid(row=0,column=1,columnspan=3)
-        self.port.grid(row=1,column=1,columnspan=3)
-        self.user.grid(row=2,column=1,columnspan=3)
+        self.server.grid(row=0,column=1,columnspan=2)
+        self.port.grid(row=1,column=1,columnspan=2)
+        self.user.grid(row=2,column=1,columnspan=2)
         self.connect.grid(row=3,column=1)
 
         # set up chat pane
@@ -71,6 +73,9 @@ class chat_gui(Frame):
         self.msg.pack(side="left",expand=1,fill="both")
 
     def connect(self):
+        """
+        Connects to the server.
+        """
         if not(self.IS_CONNECTED) and self.server.get() and self.port.get() \
         and self.user.get():
             connection = client.connect_to_server(self,self.server.get(),\
@@ -81,8 +86,10 @@ class chat_gui(Frame):
                 self.connect.config(text="Disconnect")
                 self.USERNAME = self.user.get()
                 self.SOCKET = connection[1]
-                self.chat.insert(END,"Connected to "+self.server.get()+" as "\
-                +self.USERNAME)
+                # self.chat.insert(END,"Connected to "+self.server.get()+" as "\
+                # +self.USERNAME)
+                self.display("Connected to "+self.server.get()+" as "\
+                +self.USERNAME,color="green")
 
                 data = self.SOCKET.recv(RECV_BUFR)
                 users = data.decode().split('&')
@@ -91,32 +98,59 @@ class chat_gui(Frame):
                 start_new_thread(client.socket_handler,(self,self.SOCKET))
 
             elif connection[0] == 0:
-                self.chat.insert(END,"Username exists. Please choose another")
+                # self.chat.insert(END,"Username exists. Please choose another")
+                self.display("Username exists. Please choose another",\
+                color="red")
 
             else:
-                self.chat.insert(END,"Connection failed.")
+                # self.chat.insert(END,"Connection failed.")
+                self.display("Connection failed.",color="red")
         else:
             self.SOCKET.shutdown(1)
+            self.SOCKET = None
             self.gui_userlist.delete(0,END)
             self.IS_CONNECTED = False
             self.connect.config(text="Connect")
 
     def send_msg(self, event):
-        prompt = "\n["+datetime.now().strftime('%H:%M:%S')+"] "+ \
-        self.USERNAME+" > "
-        self.chat.insert(END,prompt+self.msg.get())
-        client.send_msg(self.SOCKET,self.msg.get())
-        self.msg.delete(0,END)
+        """
+        Sends a message to the server.
+        """
+        try:
+            prompt = "\n["+datetime.now().strftime('%H:%M:%S')+"] "+ \
+            self.USERNAME+" > "
+            # self.chat.insert(END,prompt+self.msg.get())
+            self.display(prompt+self.msg.get())
+            client.send_msg(self.SOCKET,self.msg.get())
+            self.msg.delete(0,END)
+        except(AttributeError):
+            self.display("\nNo connection.\n",color="red")
 
     def add_user(self,user):
+        """
+        Adds a user to the chat.
+        """
         if len(user.strip()) >= 1:
             self.gui_userlist.insert(0,user)
 
     def remove_user(self,user):
+        """
+        removes a user from the user list.
+        """
         i = 0
         for name in self.gui_userlist.get(0,END):
             if name == user:
                 self.gui_userlist.delete(i,i)
             i+=1
+
+    def display(self, msg, color='black'):
+        """
+        Displays a message in the chat panel.
+        """
+        self.chat.configure(state='normal')
+        self.chat.insert(END,msg)
+        # self.chat.tag_add(msg, "1.8", "1.13")
+        self.chat.tag_configure(msg, foreground=""+color)
+        self.chat.configure(state='disabled')
 
 

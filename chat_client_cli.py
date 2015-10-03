@@ -6,7 +6,6 @@ import os
 import sys
 import select
 
-# server config
 SERVER_IP = '10.12.9.244' # IP of server hosting the chatroom
 SERVER_PORT = 3001 # port to connect to
 RECV_BUFR = 4096 # receive buffer size
@@ -22,8 +21,12 @@ def cli_chat_client():
     Runs a chat client that connects to a given server. The user can receive and
     send messages to the server.
     """
-    # SERVER_IP = input("SERVER IP >")
-    # SERVER_PORT = input("SERVER PORT >")
+    global SERVER_IP
+    global SERVER_PORT
+    global USERNAME
+
+    SERVER_IP = input("SERVER IP >")
+    SERVER_PORT = input("SERVER PORT >")
     # ask for USERNAME
     USERNAME.append(input("USERNAME > "))
 
@@ -36,7 +39,6 @@ def cli_chat_client():
         for user in users:
             USERS_CONNECTED.append(user)
 
-        # print_all_users()
         prompt()
 
         while 1:
@@ -133,11 +135,17 @@ def connect_to_server(username):
         return -1
 
 def print_all_users():
+    """
+    Prints out a list of all users in the chat.
+    """
     print("\nUSERS IN CHAT:")
     for user in USERS_CONNECTED:
         print("   "+user)
 
 def debug(msg):
+    """
+    For debugging purposes.
+    """
     if DEBUG:
         print("DEBUG: "+msg)
 

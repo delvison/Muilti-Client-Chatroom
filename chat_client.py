@@ -68,9 +68,9 @@ def recv_msg(gui,socket):
     """
     data = socket.recv(RECV_BUFR)
     if not data :
-        sys.exit()
+        gui.disconnect()
     else:
-        # print newly received message
+        # decode newly received message
         data = data.decode()
         # gui.chat.insert(END,"\n"+data)
         gui.display("\n"+data)
@@ -128,4 +128,3 @@ if __name__ == "__main__":
         root = Tk()
         gui_root = chat_gui(master=root)
         gui_root.mainloop()
-

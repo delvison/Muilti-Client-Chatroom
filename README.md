@@ -1,6 +1,6 @@
-% CSE534 Assignment 2
-% SUNY Korea (Fall 2015)
-% Delvison Castillo (delvison.castillo@sunykorea.edu)
+> CSE534 Assignment 2
+> SUNY Korea (Fall 2015)
+> Delvison Castillo (delvison.castillo@sunykorea.edu)
 
 
 

@@ -3,16 +3,18 @@
 from datetime import datetime
 import sys
 import socket
+from socket import *
 import select
 
-HOST = socket.gethostbyname(socket.gethostname())
+HOST = socket.gethostbyname(socket.gethostname()) # current machine's hostname
 SOCKET_LIST = {} # dictionary of sockets and users = {username:socket,...}
 RECV_BUFR = 4096 # buffer size for messages
 PORT = 3001 # port of server being connected to
-LINE = "\n##################################################################\n"
 STAR = "[*] " # event marker -- tells when a person enters or leaves room
 DEBUG = False # debugger flag
-COMMANDS = ["HELP","KICK","LIST_USERS","EXIT"]
+COMMANDS = ["HELP","KICK","LIST_USERS","EXIT"] # list of available commands
+
+LINE = "\n##################################################################\n"
 
 def chat_server():
     """
@@ -25,7 +27,7 @@ def chat_server():
     server_socket.listen(10)
 
     # add the server socket to the list of open sockets
-    SOCKET_LIST['server'] = server_socket
+    SOCKET_LIST['Host'] = server_socket
 
     print(LINE+"Chat running " +str(HOST)+":"+ str(PORT)+LINE)
     prompt()
@@ -37,6 +39,7 @@ def chat_server():
             select.select(all_sockets,[],[],0)
 
             for sock in ready_to_read:
+
                 # a new connection request is received
                 if sock == server_socket:
                     add_user(server_socket)
@@ -50,7 +53,7 @@ def chat_server():
                         process_command(m)
                     else:
                         send_msg_to_all(server_socket,server_socket,"server",
-                        "server: "+m)
+                        "server > "+m)
 
                 # a message from a client is received
                 else:
@@ -63,7 +66,7 @@ def prompt():
     """
     Prints out the chat prompt.
     """
-    sys.stdout.write("["+datetime.now().strftime('%H:%M:%S')+"] "+"server > ")
+    sys.stdout.write("["+datetime.now().strftime('%H:%M:%S')+"] "+"Host > ")
     sys.stdout.flush()
 
 
@@ -88,10 +91,7 @@ def recv_msg(server_socket, sock):
     except(UnboundLocalError):
         print("ERROR: Attempted to send to user that doesnt exist.")
 
-    except(ConnectionResetError):
-        print("ERROR: Unexpectedly disconnected.")
-
-    except(NameError):
+    except(ConnectionResetError,NameError, socket.timeout) as e:
         msg = STAR+username+" exited."
         print("\n"+msg)
         send_msg_to_all(server_socket, sock, username, msg)
@@ -103,17 +103,18 @@ def send_msg_to_all(server_socket, senders_socket,senders_username, message):
     Sends a message to all other connected clients.
     """
     debug("Entering send_msg_to_all")
+    message = "["+datetime.now().strftime('%H:%M:%S')+"] "+message
     for username, socket in SOCKET_LIST.items():
         if socket != server_socket and socket != senders_socket:
             try:
                 # attempt to send message to client
-                message = "["+datetime.now().strftime('%H:%M:%S')+"] "+message
                 socket.send(bytes(message,'UTF-8'))
             except:
                 # close socket if message fails
                 socket.close()
                 # remove client from the sockets list
                 remove_user(username)
+    # print out prompt message
     prompt()
 
 
@@ -147,7 +148,7 @@ def add_user(server_socket):
         new_sock.close()
         prompt()
 
-def remove_user(username):
+def remove_user(username, kicked = False):
     """
     Takes in an open socket, closes the socket which essentially removes a
     user, and informs the other users that the user has been removed.
@@ -161,8 +162,8 @@ def remove_user(username):
         msg = STAR+username + " exited."
         print(msg)
         print_all_users()
-        send_msg_to_all(SOCKET_LIST['server'],SOCKET_LIST['server'] ,\
-        'server', msg)
+        send_msg_to_all(SOCKET_LIST['Host'],SOCKET_LIST['Host'] ,\
+        'Host', msg)
     except KeyError:
         pass
 
@@ -202,7 +203,7 @@ def process_command(cmd):
             prompt()
         # KICK [USER]
         if cmd.split(" ")[0] == COMMANDS[1]:
-            remove_user(cmd.split(" ")[1])
+            remove_user(cmd.split(" ")[1], kicked=True)
         # LIST_USERS
         if cmd.split(" ")[0] == COMMANDS[2]:
             print_all_users()
@@ -221,4 +222,3 @@ def debug(msg):
 
 if __name__ == "__main__":
     chat_server()
-

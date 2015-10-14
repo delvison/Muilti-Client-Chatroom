@@ -1,7 +1,12 @@
+#! /usr/bin/python3
+"""
+    This module is meant to be a GUI for the chat_client.
+"""
 from tkinter import *
 import chat_client as client
 from chat_client import *
 from _thread import start_new_thread
+
 
 class chat_gui(Frame):
 
@@ -91,11 +96,14 @@ class chat_gui(Frame):
                 self.display("Connected to "+self.server.get()+" as "\
                 +self.USERNAME,color="green")
 
-                data = self.SOCKET.recv(RECV_BUFR)
-                users = data.decode().split('&')
-                for user in users:
-                    self.add_user(user)
-                start_new_thread(client.socket_handler,(self,self.SOCKET))
+                try:
+                    data = self.SOCKET.recv(RECV_BUFR)
+                    users = data.decode().split('&')
+                    for user in users:
+                        self.add_user(user)
+                    start_new_thread(client.socket_handler,(self,self.SOCKET))
+                except:
+                    pass
 
             elif connection[0] == 0:
                 # self.chat.insert(END,"Username exists. Please choose another")
@@ -106,11 +114,17 @@ class chat_gui(Frame):
                 # self.chat.insert(END,"Connection failed.")
                 self.display("Connection failed.",color="red")
         else:
-            self.SOCKET.shutdown(1)
-            self.SOCKET = None
-            self.gui_userlist.delete(0,END)
-            self.IS_CONNECTED = False
-            self.connect.config(text="Connect")
+            self.disconnect()
+
+    def disconnect(self):
+        """
+        Disconnects from a connection to the server.
+        """
+        self.SOCKET.shutdown(1)
+        self.SOCKET = None
+        self.gui_userlist.delete(0,END)
+        self.IS_CONNECTED = False
+        self.connect.config(text="Connect")
 
     def send_msg(self, event):
         """
@@ -153,4 +167,5 @@ class chat_gui(Frame):
         self.chat.tag_configure(msg, foreground=""+color)
         self.chat.configure(state='disabled')
 
-
+        if msg.strip() == 'Disconnected.' and self.IS_CONNECTED == True:
+            self.disconnect()

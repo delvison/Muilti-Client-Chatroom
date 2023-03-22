@@ -1,9 +1,3 @@
-> CSE534 Assignment 2
-> SUNY Korea (Fall 2015)
-> Delvison Castillo (delvison.castillo@sunykorea.edu)
-
-
-
 ## Introduction
 This application is meant to allow users using the client application to connect
 to a server and exchange messages. Essentially, it is meant to create a chatroom
